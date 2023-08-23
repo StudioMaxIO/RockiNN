@@ -1,9 +1,110 @@
-app = Flash(__name__)
+from flask import Flask, request, jsonify
+from tqdm import tqdm
+import os
+import model  # Assuming the model code is in a file named model.py
+
+app = Flask(__name__)
 
 
-@app.route('/')
-def hello():
-    return 'Hello, World!'
+@app.route('/add-song', methods=['POST'])
+def add_song():
+    # Logic to add a song to the training set
+    return jsonify(status="success")
+
+
+@app.route('/set-hyperparameters', methods=['POST'])
+def set_hyperparameters():
+    # Logic to update hyperparameters
+    return jsonify(status="success")
+
+
+@app.route('/train-model', methods=['POST'])
+def train_model():
+    # Logic to train the model
+
+    # get hyperparameters from request
+    hyperparameters = request.get_json()
+    embedding_dim = hyperparameters['embedding_dim']
+    rnn_units = hyperparameters['rnn_units']
+    batch_size = hyperparameters['batch_size']
+    learning_rate = hyperparameters['learning_rate']
+    num_training_iterations = hyperparameters['num_training_iterations']
+    seq_length = hyperparameters['seq_length']
+    optimizer_type = hyperparameters['optimizer_type']
+    checkpoint_dir = hyperparameters['checkpoint_dir']
+    checkpoint_prefix = os.path.join(checkpoint_dir, "my_ckpt")
+
+    # 1. prepare data - vocab, vectorized_songs = prepare_data()
+    vocab, vectorized_songs = model.prepare_data()
+    vocab_size = len(vocab)
+
+    # 2. build model (model.py) - vocab size, embedding dim, rnn units, batch size
+    model = model.build_model(vocab_size, embedding_dim, rnn_units, batch_size)
+
+    # 3. instantiate optimizer w/ learning rate & optimizer type (model.py)
+    optimizer = model.instantiate_optimizer(learning_rate, optimizer="Adam")
+
+    # 4. Begin training
+    history = []
+    # plotter = mdl.util.PeriodicPlotter(sec=2, xlabel='Iterations', ylabel='Loss')
+    if hasattr(tqdm, '_instances'):
+        tqdm._instances.clear()  # clear if it exists
+
+    for iter in tqdm(range(num_training_iterations)):
+        # Grab a batch and propagate it through the network
+        x_batch, y_batch = model.get_batch(
+            vectorized_songs, seq_length, batch_size)
+        loss = model.train_step(x_batch, y_batch)
+
+        # Update the progress bar
+        history.append(loss.numpy().mean())
+        # plotter.plot(history)
+
+        # Update the model with the changed weights!
+        if iter % 100 == 0:
+            model.save_weights(checkpoint_prefix)
+
+        # Save the trained model and the weights
+    model.save_weights(checkpoint_prefix)
+    return jsonify(status="success")
+
+
+@app.route('/generate-song', methods=['POST'])
+def generate_song():
+    # Logic to generate a song
+    vocab, _ = model.prepare_data()
+    vocab_size = len(vocab)
+
+    # 1. Get hyperparameters from request
+    hyperparameters = request.get_json()
+    embedding_dim = hyperparameters['embedding_dim']
+    rnn_units = hyperparameters['rnn_units']
+    checkpoint_dir = hyperparameters['checkpoint_dir']
+    seed_text = hyperparameters['seed_text']
+    generation_length = hyperparameters['generation_length']
+
+    # 2. Rebuild model with batch size 1
+    model = model.build_model(
+        vocab_size, embedding_dim, rnn_units, batch_size=1)
+
+    # 3. Restore the model weights for the last checkpoint after training
+    model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
+    model.build(tf.TensorShape([1, None]))
+
+    # 4. Generate song(s) using the model
+    generated_text = model.generate_text(model, start_string=seed_text,
+                                         generation_length=generation_length)
+    generated_songs = model.extract_song_snippet(generated_text)
+
+    # 5. Return the generated song(s) as a json response
+    status = "success" if len(generated_songs) > 0 else "failure"
+    return jsonify(status=status, songs=generated_songs)
+
+
+@app.route('/get-audio', methods=['GET'])
+def get_audio():
+    # Logic to convert a song to audio format
+    return jsonify(status="success")
 
 
 if __name__ == '__main__':
