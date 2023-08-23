@@ -6,10 +6,19 @@ import urllib
 import numpy as np
 from tqdm import tqdm
 
-char2idx = {u: i for i, u in enumerate(vocab)}
-idx2char = np.array(vocab)
-
 cwd = os.path.dirname(__file__)
+
+
+def char_to_idx(vocab, character):
+    char2idx = {u: i for i, u in enumerate(vocab)}
+    # Returns None if character is not in vocab
+    return char2idx.get(character, None)
+
+
+def idx_to_char(vocab, index):
+    idx2char = np.array(vocab)
+    # Returns None if index is out of range
+    return idx2char[index] if 0 <= index < len(vocab) else None
 
 
 def load_training_data():
@@ -28,8 +37,8 @@ def extract_song_snippet(text):
     return songs
 
 
-def vectorize_string(string):
-    vectorized = np.array([char2idx[char] for char in string])
+def vectorize_string(vocab, string):
+    vectorized = np.array([char_to_idx(vocab, char) for char in string])
     return vectorized
 
 
@@ -42,7 +51,7 @@ def prepare_data():
     vocab = sorted(set(songs_joined))
     # print("There are", len(vocab), "unique characters in the dataset")
     # print(vocab)
-    vectorized_songs = vectorize_string(songs_joined)
+    vectorized_songs = vectorize_string(vocab, songs_joined)
     return vocab, vectorized_songs
 
 
@@ -61,7 +70,9 @@ def build_model(vocab_size, embedding_dim, rnn_units, batch_size):
 
 def instantiate_optimizer(learning_rate, optimizer):
     if optimizer == "Adam":
-        return tf.keras.optimizers.Adam(learning_rate)
+        # return tf.keras.optimizers.Adam(learning_rate)
+        # use legacy for Mac M1/M2
+        return tf.keras.optimizers.legacy.Adam(learning_rate)
     return tf.keras.optimizers.SGD(learning_rate)
 
 
@@ -72,7 +83,7 @@ def compute_loss(labels, logits):
 
 
 @tf.function
-def train_step(model, x, y):
+def train_step(model, optimizer, x, y):
     with tf.GradientTape() as tape:
         y_hat = model(x)
         loss = compute_loss(y, y_hat)
@@ -85,9 +96,9 @@ def train_step(model, x, y):
     return loss
 
 
-def generate_text(model, start_string, generation_length=1000):
+def generate_text(model, vocab, start_string, generation_length=1000):
     # Evaluation step (generating ABC text using the learned RNN model)
-    input_eval = [char2idx[s] for s in start_string]
+    input_eval = [char_to_idx(vocab, s) for s in start_string]
     input_eval = tf.expand_dims(input_eval, 0)
     text_generated = []
     model.reset_states()
@@ -98,7 +109,7 @@ def generate_text(model, start_string, generation_length=1000):
         predicted_id = tf.random.categorical(
             predictions, num_samples=1)[-1, 0].numpy()
         input_eval = tf.expand_dims([predicted_id], 0)
-        text_generated.append(idx2char[predicted_id])
+        text_generated.append(idx_to_char(vocab, predicted_id))
     return (start_string + ''.join(text_generated))
 
 

@@ -1,0 +1,10 @@
+{
+  "batch_size": 4,
+  "checkpoint_dir": "./training_checkpoints",
+  "embedding_dim": 256,
+  "learning_rate": 0.005,
+  "num_training_iterations": 2000,
+  "optimizer_type": "Adam",
+  "rnn_units": 1024,
+  "seq_length": 100
+}

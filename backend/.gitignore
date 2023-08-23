@@ -51,6 +51,9 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Training data
+training_checkpoints/
+
 # Translations
 *.mo
 *.pot

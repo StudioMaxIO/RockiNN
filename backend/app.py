@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
+import tensorflow as tf
 from tqdm import tqdm
 import os
-import model  # Assuming the model code is in a file named model.py
+import model as mdl  # Assuming the model code is in a file named model.py
+import json
 
 app = Flask(__name__)
 
@@ -15,6 +17,11 @@ def add_song():
 @app.route('/set-hyperparameters', methods=['POST'])
 def set_hyperparameters():
     # Logic to update hyperparameters
+    # get hyperparameters from request and save to JSON file in ./data
+    hyperparameters = request.get_json()
+    with open(os.path.join("data", "hyperparameters.json"), "w") as f:
+        json.dump(hyperparameters, f, indent=2, sort_keys=True)
+
     return jsonify(status="success")
 
 
@@ -23,7 +30,22 @@ def train_model():
     # Logic to train the model
 
     # get hyperparameters from request
-    hyperparameters = request.get_json()
+    # hyperparameters = request.get_json()
+    # embedding_dim = hyperparameters['embedding_dim']
+    # rnn_units = hyperparameters['rnn_units']
+    # batch_size = hyperparameters['batch_size']
+    # learning_rate = hyperparameters['learning_rate']
+    # num_training_iterations = hyperparameters['num_training_iterations']
+    # seq_length = hyperparameters['seq_length']
+    # optimizer_type = hyperparameters['optimizer_type']
+    # checkpoint_dir = hyperparameters['checkpoint_dir']
+    # checkpoint_prefix = os.path.join(checkpoint_dir, "my_ckpt")
+
+    # get paramaters from ./data/hyperparameters.json
+    hyperparameters = {}
+    print("loading hyperparameters")
+    with open(os.path.join("data", "hyperparameters.json"), "r") as f:
+        hyperparameters = json.load(f)
     embedding_dim = hyperparameters['embedding_dim']
     rnn_units = hyperparameters['rnn_units']
     batch_size = hyperparameters['batch_size']
@@ -34,16 +56,20 @@ def train_model():
     checkpoint_dir = hyperparameters['checkpoint_dir']
     checkpoint_prefix = os.path.join(checkpoint_dir, "my_ckpt")
 
+    print("preparing data")
     # 1. prepare data - vocab, vectorized_songs = prepare_data()
-    vocab, vectorized_songs = model.prepare_data()
+    vocab, vectorized_songs = mdl.prepare_data()
     vocab_size = len(vocab)
 
+    print("building model")
     # 2. build model (model.py) - vocab size, embedding dim, rnn units, batch size
-    model = model.build_model(vocab_size, embedding_dim, rnn_units, batch_size)
+    model = mdl.build_model(vocab_size, embedding_dim, rnn_units, batch_size)
 
+    print("instantiate optimizer")
     # 3. instantiate optimizer w/ learning rate & optimizer type (model.py)
-    optimizer = model.instantiate_optimizer(learning_rate, optimizer="Adam")
+    optimizer = mdl.instantiate_optimizer(learning_rate, optimizer="Adam")
 
+    print("training model")
     # 4. Begin training
     history = []
     # plotter = mdl.util.PeriodicPlotter(sec=2, xlabel='Iterations', ylabel='Loss')
@@ -52,9 +78,9 @@ def train_model():
 
     for iter in tqdm(range(num_training_iterations)):
         # Grab a batch and propagate it through the network
-        x_batch, y_batch = model.get_batch(
+        x_batch, y_batch = mdl.get_batch(
             vectorized_songs, seq_length, batch_size)
-        loss = model.train_step(x_batch, y_batch)
+        loss = mdl.train_step(model, optimizer=optimizer, x=x_batch, y=y_batch)
 
         # Update the progress bar
         history.append(loss.numpy().mean())
@@ -72,19 +98,25 @@ def train_model():
 @app.route('/generate-song', methods=['POST'])
 def generate_song():
     # Logic to generate a song
-    vocab, _ = model.prepare_data()
+    vocab, _ = mdl.prepare_data()
     vocab_size = len(vocab)
 
     # 1. Get hyperparameters from request
-    hyperparameters = request.get_json()
+    requestParams = request.get_json()
+    seed_text = requestParams['seed_text']
+    generation_length = requestParams['generation_length']
+
+    # 1. Get hyperparameters from ./data/hyperparameters.json
+    hyperparameters = {}
+    print("loading hyperparameters")
+    with open(os.path.join("data", "hyperparameters.json"), "r") as f:
+        hyperparameters = json.load(f)
     embedding_dim = hyperparameters['embedding_dim']
     rnn_units = hyperparameters['rnn_units']
     checkpoint_dir = hyperparameters['checkpoint_dir']
-    seed_text = hyperparameters['seed_text']
-    generation_length = hyperparameters['generation_length']
 
     # 2. Rebuild model with batch size 1
-    model = model.build_model(
+    model = mdl.build_model(
         vocab_size, embedding_dim, rnn_units, batch_size=1)
 
     # 3. Restore the model weights for the last checkpoint after training
@@ -92,9 +124,9 @@ def generate_song():
     model.build(tf.TensorShape([1, None]))
 
     # 4. Generate song(s) using the model
-    generated_text = model.generate_text(model, start_string=seed_text,
-                                         generation_length=generation_length)
-    generated_songs = model.extract_song_snippet(generated_text)
+    generated_text = mdl.generate_text(model, vocab=vocab, start_string=seed_text,
+                                       generation_length=generation_length)
+    generated_songs = mdl.extract_song_snippet(generated_text)
 
     # 5. Return the generated song(s) as a json response
     status = "success" if len(generated_songs) > 0 else "failure"
@@ -103,7 +135,11 @@ def generate_song():
 
 @app.route('/get-audio', methods=['GET'])
 def get_audio():
+    # get song from json request
+    requestParams = request.get_json()
+    song = requestParams['song']
     # Logic to convert a song to audio format
+    print(f"""{song}""")
     return jsonify(status="success")
 
 
