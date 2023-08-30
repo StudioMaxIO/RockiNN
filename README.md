@@ -1,4 +1,4 @@
-# RockiNN
+# 🎵 RockiNN 🎸
 Train and generatie music with a RNN (recurrent neural network)
 - GUI for rapidly adjusting hyperparameters
 - Easily add music in XYZ notation to training set
