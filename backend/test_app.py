@@ -38,8 +38,8 @@ def test_train_model():
 
 def test_generate_song():
     generation_params = {
-        "seed_text": f"""X:123\nT:Coolio\nQ: 1/4=120\n""",
-        "generation_length": 1000,
+        "seed_text": "X",
+        "generation_length": 1500,
     }
     response = requests.post(
         f"{BASE_URL}/generate-song", json=generation_params)
@@ -58,6 +58,6 @@ def test_get_audio(song):
 if __name__ == "__main__":
     # test_set_hyperparameters()
     # test_train_model()
-    response = test_generate_song()
-    test_get_audio(response['songs'][0])
-    # test_add_song()
+    # response = test_generate_song()
+    # test_get_audio(response['songs'][0])
+    test_add_song()

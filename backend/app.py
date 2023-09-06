@@ -11,6 +11,14 @@ app = Flask(__name__)
 @app.route('/add-song', methods=['POST'])
 def add_song():
     # Logic to add a song to the training set
+    # get song from json request
+    requestParams = request.get_json()
+    song = requestParams['song']
+
+    # add song to ./data/training_music.abc
+    with open(os.path.join("data", "training_music.abc"), "a") as f:
+        f.write(song)
+        f.write("\n\n")
     return jsonify(status="success")
 
 
