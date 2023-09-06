@@ -10,5 +10,6 @@ RockiNN is a project I'm building to explore and better understand RNNs. This is
 
 ## Todo:
 
+- [ ] Connect frontend to backend
 - [ ] Convert audio / MIDI files to ABC notation for training
 - [ ] Record live instrument / vocals and convert to ABC notation
