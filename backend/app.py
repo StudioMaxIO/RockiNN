@@ -109,12 +109,12 @@ def generate_song():
     vocab, _ = mdl.prepare_data()
     vocab_size = len(vocab)
 
-    # 1. Get hyperparameters from request
+    # Get hyperparameters from request
     requestParams = request.get_json()
     seed_text = requestParams['seed_text']
     generation_length = requestParams['generation_length']
 
-    # 1. Get hyperparameters from ./data/hyperparameters.json
+    # Get hyperparameters from ./data/hyperparameters.json
     hyperparameters = {}
     print("loading hyperparameters")
     with open(os.path.join("data", "hyperparameters.json"), "r") as f:
@@ -123,20 +123,20 @@ def generate_song():
     rnn_units = hyperparameters['rnn_units']
     checkpoint_dir = hyperparameters['checkpoint_dir']
 
-    # 2. Rebuild model with batch size 1
+    # Rebuild model with batch size 1
     model = mdl.build_model(
         vocab_size, embedding_dim, rnn_units, batch_size=1)
 
-    # 3. Restore the model weights for the last checkpoint after training
+    # Restore the model weights for the last checkpoint after training
     model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
     model.build(tf.TensorShape([1, None]))
 
-    # 4. Generate song(s) using the model
+    # Generate song(s) using the model
     generated_text = mdl.generate_text(model, vocab=vocab, start_string=seed_text,
                                        generation_length=generation_length)
     generated_songs = mdl.extract_song_snippet(generated_text)
 
-    # 5. Return the generated song(s) as a json response
+    # Return the generated song(s) as a json response
     status = "success" if len(generated_songs) > 0 else "failure"
     return jsonify(status=status, songs=generated_songs)
 

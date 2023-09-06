@@ -1,5 +1,11 @@
 # Music Generator backend
 
+## Head into `backend` directory
+
+```bash
+cd backend
+```
+
 ## Setup virtual environment
 
 ```bash
@@ -8,14 +14,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Start virtual environment
+
+```bash
+source venv/bin/activate
+```
+
 ## Run backend
 
 ```bash
-python3 app.py
+python app.py
 ```
-
-## Todo:
-
-- [ ] Generate ABC notation from MIDI files
-- [ ] Convert audio files to ABC notation
-- [ ] Record live instrument / vocals and convert to ABC notation

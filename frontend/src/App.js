@@ -42,7 +42,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Funk Bass Generation</h1>
+      <h1>RockiNN Music Generator</h1>
 
       <AddSong
         songInput={songInput}
