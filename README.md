@@ -1,6 +1,6 @@
 # 🎵 RockiNN 🎸
 
-RockNN is a project I'm building to explore and better understand RNNs. This is an early work in progress. Feel free to contribute if this is something that interests you as well.
+RockiNN is a project I'm building to explore and better understand RNNs. This is an early work in progress. Feel free to contribute if this is something that interests you as well.
 
 ## Train and generatie music with a RNN (recurrent neural network)
 
